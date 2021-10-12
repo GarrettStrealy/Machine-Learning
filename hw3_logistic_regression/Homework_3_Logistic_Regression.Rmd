@@ -1,0 +1,264 @@
+---
+title: "Homework 3"
+subtitle: "4375 Machine Learning with Dr. Mazidi"
+author: "Garrett Strealy"
+date: "9/12/2021"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+This homework runs logistic regression to predict the binary feature of whether or not a person was admitted to graduate school, based on a set of predictors: GRE score, TOEFL score, rating of undergrad university attended, SOP statement of purpose, LOR letter or recommendation, Undergrad GPA, Research experience (binary).
+
+The data set was downloaded from Kaggle: https://www.kaggle.com/mohansacharya/graduate-admissions
+
+The data is available in Piazza. 
+
+## Step 1 Load the data
+
+* Load the data
+* Examine the first few rows with head()
+
+```{r}
+df <- read.csv("Admission_Predict.csv") # read in csv to data frame
+
+head(df)
+```
+
+## Step 2 Data Wrangling
+
+Perform the following steps:
+
+* Make Research a factor
+* Get rid of the Serial No column
+* Make a new column that is binary factor based on if Chance.of.Admit > 0.5. Hint: See p. 40 in the book. 
+* Output column names with names() function
+* Output a summary of the data
+* Is the data set unbalanced? Why or why not?
+
+ Your commentary here:
+ 
+The data is unbalanced. In Admit, there are many more True values than False, meaning many more students are Admit to be admitted than not. 
+
+```{r}
+library(dplyr)
+
+# Make Research a factor
+df$Research <- factor(df$Research, levels = c("0", "1"), labels = c("No", "Yes"))
+
+# get rid of the Serial No column
+df <- select(df, -Serial.No.)
+
+# make new column Admit based on if Chance.of.Admit > 0.5
+# 1 = likely to be admitted, 0 = unlikely
+df$Admit <- 0 # create column
+df$Admit[df$Chance.of.Admit > 0.5] <- 1 # assign values to each observation
+df$Admit <- factor(df$Admit) # convert column to factor
+
+# output column names
+names(df)
+
+# check for balance
+plot(df$Admit, xlab = "Admit (0 = unlikely, 1 = likely)", ylab = "Students")
+```
+
+```{r}
+summary(df)
+```
+
+## Step 3 Data Visualization
+
+* Create a side-by-side graph with Admit on the x axis of both graphs, GRE score on the y axis of one graph and TOEFL score on the y axis of the other graph; save/restore the original graph parameters
+* Comment on the graphs and what they are telling you about whether GRE and TOEFL are good predictors
+* You will get a lot of warnings, you can suppress them with disabling warnings as shown below:
+
+```
+{r,warning=FALSE}
+```
+
+Your commentary here:
+
+These graphs tell me that there is a strong positive correlation between GRE and Admit and between TOEFL and Admit. GRE and TOEFL are both good predictors of Admit. 
+
+```{r,warning=FALSE}
+
+par(mfrow=c(1,2))
+plot(df$Admit, df$GRE.Score, data=df, xlab="Admit (0 = unlikely, 1 = likely)", ylab="GRE Score", varwidth=TRUE)
+plot(df$Admit, df$TOEFL.Score, data = df, xlab="Admit (0 = unlikely, 1 = likely)", ylab="TOEFL Score", varwidth=TRUE)
+```
+
+
+## Step 4 Divide train/test
+
+* Divide into 75/25 train/test, using seed 1234
+
+```{r}
+# enable reproduction
+set.seed(1234) 
+
+# create data frame i, consisting of the row indexes of -
+# 75% of the rows in df, randomly sampled
+i <- sample(1:nrow(df), 0.75*nrow(df), replace=FALSE)
+
+train <- df[i,] # 75% train
+test <- df[-i,] # 25% test
+```
+
+## Step 5 Build a Model with all predictors 
+
+* Build a model, predicting Admit from all predictors
+* Output a summary of the model
+* Did you get an error? Why? Hint: see p. 120 Warning
+
+Your commentary here: 
+
+I received two error messages because the training data is perfectly or nearly perfectly linearly separable. R gave these warnings due to the inability to maximize the likelihood which already has separated the data perfectly.
+
+```{r}
+glm1 <- glm(Admit ~ ., data=train, family=binomial)
+
+summary(glm1)
+```
+
+## Step 6 Build a Model with all predictors except Chance.of.Admit
+
+* Build another model, predicting Admit from all predictors *except* Chance.of.Admit
+* Output a summary of the model
+* Did you get an error? Why or why not?
+
+There was no error when building this model because the training data is linearly separable. 
+
+```{r}
+glm2 <- glm(Admit ~ . - Chance.of.Admit, data=train, family=binomial)
+
+summary(glm2)
+```
+
+## Step 7 Predict probabilities
+
+* Predict the probabilities using type="response"
+* Examine a few probabilities and the corresponding Chance.of.Admit values
+* Run cor() on the predicted probs and the Chance.of.Admit, and output the correlation
+* What do you conclude from this correlation. 
+
+Your commentary here:
+
+I conclude that glm2 has a slightly positive correlation with 
+
+```{r}
+
+# predict probabilities using glm1
+#probs1 <-  predict(glm1, newdata=test, type="response")
+#pred1 <-  ifelse(probs1>0.5, 1, 0)
+
+# examine glm1 probabilities and corresponding Chance.of.Admit
+#print(paste("head of probs1:"))
+#head(probs1)
+#print(paste("head of test$Chance.of.Admit:"))
+#head(test$Chance.of.Admit)
+
+# predict probabilities using glm2
+probs2 <-  predict(glm2, newdata=test, type="response")
+pred2 <-  ifelse(probs2>0.5, 1, 0)
+
+# examine glm2 probabilities and corresponding Chance.of.Admit
+print(paste("head of probs2:"))
+head(probs2)
+print(paste("head of test$Chance.of.Admit:"))
+head(test$Chance.of.Admit)
+
+# find correlation between predicted probabilities and Chance.of.Admit
+cor.probs.2 <- cor(probs2, test$Chance.of.Admit)
+print(paste("glm2 correlation with probs2 =", cor.probs.2))
+
+#cor.probs.1 <- cor(probs1, test$Chance.of.Admit)
+#print(paste("glm1 correlation with probs1 =", cor.probs.1))
+```
+
+## Step 8 Make binary predictions, print table and accuracy
+
+* Run predict() again, this time making binary predictions
+* Output a table comparing the predictions and the binary Admit column
+* Calculate and output accuracy
+* Was the model able to generalize well to new data?
+
+Your commentary here:
+
+The model generalized well to the new data with an accuracy of 92%. Testing this model on a a larger and more balanced data set would help remove skepticism about this accuracy result.
+
+```{r}
+
+# make binary prediction on the test data using glm2
+probs2 <- predict(glm2, newdata=test)
+pred2 <- ifelse(probs2>0.5, 1, 0)
+table(pred2, test$Admit)
+
+acc2 <- mean(pred2==test$Admit)
+print(paste("accuracy of glm2 predictions: ", acc2))
+
+# make binary prediction on the test data using glm1
+#probs1 <- predict(glm1, newdata=test)
+#pred1 <- ifelse(probs1>0.5, 1, 0)
+#table(pred1, test$Admit) 
+
+#acc1 <- mean(pred1==test$Admit)
+#print(paste("accuracy of glm1 predictions: ", acc1))
+
+```
+
+## Step 9 Output ROCR and AUC
+
+* Output a ROCR graph
+* Extract and output the AUC metric
+
+```{r}
+# your code here
+library(ROCR)
+
+p2 <- predict(glm2, newdata=test, type="response")
+pr2 <- prediction(p2, test$Admit)
+# TPR = sensitivity, FPR=specificity
+prf2 <- performance(pr2, measure = "tpr", x.measure = "fpr")
+plot(prf2, main="glm2 ROC")
+
+auc2 <- performance(pr2, measure = "auc")
+auc2 <- auc2@y.values[[1]]
+print(paste("glm2 AUC: ", auc2))
+
+#p <- predict(glm1, newdata=test, type="response")
+#pr <- prediction(p, test$Admit)
+# TPR = sensitivity, FPR = specificity
+#prf <- performance(pr, measure = "tpr", x.measure = "fpr")
+#plot(prf, main="glm1 ROC")
+
+#auc <- performance(pr, measure = "auc")
+#auc <- auc@y.values[[1]]
+#print(paste("glm1 AUC: ", auc))
+```
+
+
+## Step 10
+
+* Make two more graphs and comment on what you learned from each graph:
+  * Admit on x axis, SOP on y axis
+  * Research on x axis, SOP on y axis
+  
+Your commentary here:
+
+Plot 1 shows that students likely to be admitted have a significantly higher median SOP than students unlikely to be admitted (approximately 3.5 vs 2). This shows the importance of SOP in applicants' chances of admission.
+
+Plot 2 shows that students with research experience have a significantly higher median SOP than students without research experience (approximately 4 vs 3).This shows that students with research experience are likely to have a higher SOP.
+
+My conclusion is that future applicants should consider research as a means to improve their chances of admittance.
+
+```{r}
+# plot 1
+plot(df$Admit, df$SOP, main="SOP Strength and Admittance",  xlab="Admit (0 = No, 1 = Yes)", ylab="SOP Strength")
+```
+
+```{r}
+# plot 2
+plot(df$Research, df$SOP, xlab="Research Experience", ylab="SOP Strength")
+```
+
