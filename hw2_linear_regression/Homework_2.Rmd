@@ -1,0 +1,366 @@
+---
+title: "Homework 2"
+subtitle: "4375 Machine Learning with Dr. Mazidi"
+author: "Garrett Strealy"
+date: "9/7/2021"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+This homework gives practice in using linear regression in two parts:
+
+* Part 1 Simple Linear Regression (one predictor)
+* Part 2 Multiple Linear Regression (many predictors)
+
+You will need to install package ISLR at the console, not in your script. 
+
+# Problem 1: Simple Linear Regression
+
+## Step 1: Initial data exploration
+
+* Load library ISLR (install.packages() at console if needed)
+* Use names() and summary() to learn more about the Auto data set
+* Divide the data into 75% train, 25% test, using seed 1234
+
+```{r}
+# your code here
+library(ISLR)
+
+print("Column names of Auto dataframe:")
+names(Auto)
+
+print("Summary of Auto dataframe:")
+summary(Auto)
+
+#data(Auto)
+
+# Set seed so that same sample can be reproduced in future
+set.seed(1234)
+
+# Selecting 75% of data as sample from total 'n' rows of the data 
+i = sample(1:nrow(Auto), nrow(Auto)*0.75, replace=FALSE)
+train <- Auto[i, ] # 75% train
+test <- Auto[-i, ] # 25% test
+```
+
+## Step 2: Create and evaluate a linear model
+
+* Use the lm() function to perform simple linear regression on the train data with mpg as the response and horsepower as the predictor
+* Use the summary() function to evaluate the model 
+* Calculate the MSE by extracting the residuals from the model like this: 
+  mse <- mean(lm1$residuals^2)
+* Print the MSE
+* Calculate and print the RMSE by taking the square root of MSE
+
+```{r}
+# your code here
+
+lm1 <- lm(mpg ~ horsepower, data=train) # perform linear regression
+
+print("Summary of Model:")
+summary(lm1) # evaluate model
+
+mse <- mean(lm1$residuals^2) # calculate MSE
+print(paste("MSE: ", mse)) # print MSE
+
+print(paste("RMSE: ", sqrt(mse))) # calculate and print RMSE
+```
+
+## Step 3 (No code. Write your answers in white space)
+
+* Write the equation for the model, y = wx + b, filling in the parameters w, b and variable names x, y
+
+mpg = 39.648595 - 0.156681*horsepower
+
+* Is there a strong relationship between horsepower and mpg?
+
+Yes, there is a strong relationship between horsepower and mpg.
+
+*	Is it a positive or negative correlation? 
+
+A strong negative correlation exists between horsepower and mpg.
+
+*	Comment on the RSE, R^2, and F-statistic, and how each indicates the strength of the model
+
+1. The RSE of 4.853 tells us that our model is off by 4.853 mpg on average. The RSE measures how off our model was from the data (the lack of fit of the model). The lower the RSE, the better the model. We would like a lower RSE than 4.853.
+2. The R^2 of 0.6136 indicates a moderately strong model, although we would like to see it closer to 1. The closer R^2 is to 1 the more variance in the model is explained by the predictors.
+3. The F-statistic of 463.7 accompanied with a p-value < 2.2e-16 indicates a strong model. We would like to see a F-stat greater than 1 and a low p-value, which this model satisfies.
+
+*	Comment on the RMSE and whether it indicates that a good model was created
+
+The RMSE of 4.8365 is very close to the RSE of 4.853, and it is similarly informative of how off our model was from the data (the lack of fit of the model) in terms of y (mpg).
+
+## Step 4: Examine the model graphically
+
+* Plot train\$mpg~train\$horsepower
+* Draw a blue abline()
+* Comment on how well the data fits the line
+* Predict mpg for horsepower of 98. Hint: See the Quick Reference 5.10.3 on page 96
+* Comment on the predicted value given the graph you created
+
+Your commentary here:
+
+The data fits the line moderately well. However, the RSE of 4.85 is evident, as is the high skewness of Auto$horsepower.
+
+The predicted value of 24.3 is consistent with what we could expect from the graph.
+
+```{r}
+# your code here
+plot(train$mpg ~ train$horsepower, pch = 16, cex = 1.3, col = "black", main = "MPG as a function of Horsepower", xlab = "Horsepower", ylab = "Miles Per Gallon (MPG)")
+abline(lm1, col="blue")
+
+predict(lm1, data.frame(horsepower=98), interval="confidence")
+
+```
+
+## Step 5: Evaluate on the test data
+
+* Test on the test data using the predict function
+* Find the correlation between the predicted values and the mpg values in the test data
+* Print the correlation
+* Calculate the mse on the test results
+* Print the mse
+* Compare this to the mse for the training data
+* Comment on the correlation and the mse in terms of whether the model was able to generalize well to the test data
+
+Your commentary here:
+There is a strong positive correlation between the predicted values and test data. The MSE of the training data is 23.4, while the MSE of the test data is 25.7. These findings indicate that the model was able to generalize well to the test data.
+
+```{r}
+# your code here
+p <- predict(lm1, newdata=test)
+print(paste("Cor between predicted and test data: ", cor(p, test$mpg)))
+
+
+residuals <- p - test$mpg
+mseTest <- mean(residuals^2) # calculate MSE
+print(paste("Test data MSE: ", mseTest)) 
+
+print(paste("Train data MSE: ", mse)) 
+
+
+```
+
+## Step 6: Plot the residuals
+
+* Plot the linear model in a 2x2 arrangement
+* Do you see evidence of non-linearity from the residuals?
+
+Your commentary here:
+
+The residual plots have a strong curve, indicating issues with the fit. We would like these lines to be more horizontal.
+
+```{r}
+# your code here
+par(mfrow=c(2,2))
+plot(lm1)
+```
+
+## Step 7: Create a second model
+
+* Create a second linear model with log(mpg) predicted by horsepower
+* Run summary() on this second model
+* Compare the summary statistic R^2 of the two models
+
+Your commentary here:
+This model has an R^2 of 0.7 compared to model one's 0.6. This model's higher R^2 indicates that it is a stronger model.
+
+```{r}
+# your code here
+lm2 <- lm(log(mpg) ~ horsepower, train)
+print("Summary of Model Two:")
+summary(lm2)
+
+```
+
+## Step 8: Evaluate the second model graphically
+
+* Plot log(train\$mpg)~train\$horsepower
+* Draw a blue abline() 
+* Comment on how well the line fits the data compared to model 1 above
+
+Your commentary here:
+
+This data fits the line more closely than Model One's data.  
+
+```{r}
+# your code here
+plot(log(train$mpg) ~ train$horsepower, pch = 16, cex = 1.3, col = "black", main = "log(MPG) as a function of Horsepower", xlab = "Horsepower", ylab = "log(MPG)")
+
+abline(lm2, col="blue")
+```
+
+## Step 9: Predict and evaluate on the second model
+
+* Predict on the test data using lm2
+* Find the correlation of the preds and log() of test mpg, remembering to compare pred with log(test$mpg)
+* Output this correlation
+* Compare this correlation with the correlation you got for model 
+* Calculate and output the MSE for the test data on lm2, and compare to model 1. Hint: Compute the residuals and mse like this:
+```
+residuals <- pred - log(test$mpg)
+mse <- mean(residuals^2)
+```
+
+Your commentary here: 
+
+Model Two has a correlation of .82, which is higher than Model One's .76. Model Two has a much smaller MSE than Model One (.03 compared to 25.7).
+
+```{r}
+# your code here
+pred <- predict(lm2, newdata=test)
+
+print("Summary of predicted values:")
+summary(pred)
+
+print(paste("Cor between Model Two predicted and test data: ", cor(pred, log(test$mpg))))
+print(paste("Cor between Model One predicted and test data: ", cor(p, test$mpg)))
+
+# calculate MSE
+residuals <- pred - log(test$mpg)
+mseTwo <- mean(residuals^2)
+print(paste("Model Two test data MSE: ", mseTwo))
+print(paste("Model One test data MSE: ", mseTest)) 
+```
+
+## Step 10: Plot the residuals of the second model
+
+* Plot the second linear model in a 2x2 arrangement
+* How does it compare to the first set of graphs?
+
+Your commentary here:
+
+Plot 1: Model Two shows more evidence of linearity than Model One, as the line is more horizontal. 
+Plot 2: Model Two shows more evidence of linearity than Model One, as the standardized residual plots follow the dotted line more closely. 
+Plot 3: The models have similar plots, with both being mostly horizontal. Model One looks slightly more horizontal. This is evidence of linearity.
+Plot 4: Both models show evidence of possible outliers with unusual x-values. Further investigation is warranted.
+
+```{r}
+# your code here
+par(mfrow=c(2,2))
+plot(lm2)
+```
+
+# Problem 2: Multiple Linear Regression
+
+## Step 1: Data exploration
+
+* Produce a scatterplot matrix of correlations which includes all the variables in the data set using the command “pairs(Auto)”
+* List any possible correlations that you observe, listing positive and negative correlations separately, with at least 3 in each category.
+
+Your commentary here:
+
+Positive: There appears to be a positive correlation between displacement<->horsepower, displacement<->weight, displacement<->cylinders, horsepower<->weight, cylinders<->weight, and year<->mpg.
+
+Negative: There appears to be a negative correlation between weight<->mpg, horsepower<->acceleration,  displacement<->acceleration, and displacement<->mpg.
+
+```{r}  
+# your code here
+pairs(Auto)
+```
+
+
+## Step 2: Data visualization
+
+* Display the matrix of correlations between the variables using function cor(), excluding the “name” variable since is it qualitative
+* Write the two strongest positive correlations and their values below. Write the two strongest negative correlations and their values as well.
+
+Your commentary here:
+
+Strongest positive: 
+1. Cylinders and Displacement: .95 
+2. Weight and Displacement: .933
+3. Horsepower and Displacement: .9
+
+Strongest negative:
+1. Weight and MPG: -.83
+2. Displacement and MPG: -.8
+3. Horsepower and MPG: -.8
+```{r}  
+# your code here
+Auto$name<-NULL
+cor(Auto)
+```
+
+
+## Step 3: Build a third linear model
+
+* Convert the origin variable to a factor
+* Use the lm() function to perform multiple linear regression with mpg as the response and all other variables except name as predictors
+* Use the summary() function to print the results
+* Which predictors appear to have a statistically significant relationship to the response?
+
+Your commentary here:
+
+Year, Weight, and Origin are the predictors that appear to have the most statistically significant relationship to the MPG response.
+
+```{r} 
+# your code here
+print("train$origin changed to a factor:")
+as.factor(train$origin)
+
+lm3 <- lm(mpg ~ . - name, data=train)
+
+print("Summary of Model Three:")
+summary(lm3)
+```
+
+
+## Step 4: Plot the residuals of the third model
+
+* Use the plot() function to produce diagnostic plots of the linear regression fit
+* Comment on any problems you see with the fit
+* Are there any leverage points? 
+* Display a row from the data set that seems to be a leverage point. 
+
+Your commentary here:
+
+The residual plot has a strong curve, indicating issues with the fit.
+Plot 2 indicates possible issues with fit in theoretical quantile 2.
+
+Observations 14 has high leverage. 
+
+
+```{r}  
+# your code here
+par(mfrow=c(2,2))
+plot(lm3)
+
+print(train[14,]) # display Observation 14
+```
+
+
+## Step 5: Create and evaluate a fourth model
+
+* Use the * and + symbols to fit linear regression models with interaction effects, choosing whatever variables you think might get better results than your model in step 3 above
+* Compare the summaries of the two models, particularly R^2
+* Run anova() on the two models to see if your second model outperformed the previous one, and comment below on the results
+
+Your commentary here:
+Model Four has an R^2 of .92, better than the Model Three's R^2 of .83.
+
+Running anova() shows that the RSS is lower for Model Four, and Model Four is given a low p-value. This is confirmation that Model Four outperformed Model Three. 
+
+```{r}  
+# your code here
+lm4 <- lm(mpg ~ year * weight * origin * displacement * cylinders * horsepower, data=train)
+
+print("Summary of Linear Model Four:")
+summary(lm4)
+
+print("Comparison of Model Three and Model Four:")
+anova(lm3, lm4)
+
+#pred <- predict(lm4, newdata=test)
+
+#print(paste("Cor between Model Four predicted and test data: ", cor(pred, test$mpg)))
+
+# calculate MSE
+#residuals <- pred - test$mpg
+#mseFour <- mean(residuals^2)
+#print(paste("MSE: ", mseFour))
+#print(paste("RMSE: ", sqrt(mseFour)))
+```
+
